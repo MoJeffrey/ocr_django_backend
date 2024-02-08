@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+</body>
+
+<!-- template.html -->
+
+<script>
+var socket = new WebSocket('ws://localhost:8000/ws/questions/');
+
+socket.onopen = function() {
+    console.log('WebSocket connection established.');
+};
+
+socket.onmessage = function(event) {
+    console.log('Message received: ' + event.data);
+};
+
+socket.onclose = function() {
+    console.log('WebSocket connection closed.');
+};
+
+function sendMessage(message) {
+    socket.send(message);
+}
+</script>
+
+</html>
