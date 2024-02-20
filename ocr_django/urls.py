@@ -16,15 +16,18 @@ Including another URLconf
 """
 from django.urls import path
 
-from generators.WebSocket import Websocket
+from generators.GeneratorsWebSocket import GeneratorsWebSocket
+from recognizer.RecognizerWebSocket import RecognizerWebSocket
 from transponder import views as transponder
 
 websocket_urlpatterns = [
-    path('ws/', Websocket.as_asgi()),
+    path('ws/generators/', GeneratorsWebSocket.as_asgi()),
+    path('ws/recognizer/', RecognizerWebSocket.as_asgi()),
 ]
 
 urlpatterns = [
     path('question/<path:url>', transponder.APITransponder),
+    path('test', transponder.test),
 ]
 
 

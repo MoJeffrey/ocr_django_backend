@@ -1,22 +1,33 @@
+import asyncio
 import json
+import logging
 
+from asgiref.sync import async_to_sync
 from django.http import JsonResponse
-from django.utils.decorators import method_decorator
-from django.views.decorators.csrf import csrf_exempt
 
+from generators.enum.ActionEnum import ActionEnum
 from generators.generators import Generator
 
 
-@method_decorator(csrf_exempt)
-def APITransponder(request, url):
+async def APITransponder(request, url):
     param = {
-        "url": request.path,
-        "headers": [],
+        "url": url,
+        "headers": {'AUTHORIZATION': request.META.get("HTTP_AUTHORIZATION")},
         "method": request.method,
-        "data": json.loads(request.body),
-        "action": "transponder"
+        "action": ActionEnum.transponder.value
     }
+    if request.method == "GET":
+        param['params'] = request.GET.dict()
+    elif request.method == "POST":
+        param["data"] = json.loads(request.body) if request.body else {}
 
-    Generator.Run(param)
+    identificationCode = await Generator.Run(param)
+    await Generator.waitAnswer(identificationCode)
+    data = Generator.GetAnswer(identificationCode)
 
-    return JsonResponse(param)
+    return JsonResponse(data)
+
+
+async def test(request):
+    await asyncio.sleep(1)
+    return JsonResponse({'message': 'Async view completed'})

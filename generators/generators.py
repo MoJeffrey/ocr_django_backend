@@ -5,11 +5,13 @@ from channels.layers import get_channel_layer
 
 from Tools import QrcodeMaker
 from generators.Exceptions.NoGeneratorError import NoGeneratorError
-from generators.QuestionDTO import QuestionDTO
+from generators.DTO.QuestionAndAnswerDTO import QuestionAndAnswerDTO
+from generators.QuestionEvent import QuestionEvent
 
 
 class Generator(object):
     __Generators = []
+    __QuestionList = {}
     __NextGenerator = 0
     __GeneratorCode = 0
 
@@ -19,24 +21,51 @@ class Generator(object):
         pass
 
     @staticmethod
-    def Run(data: str):
-        code = Generator.Get()
+    def GetAnswer(identificationCode: str):
+        question = Generator.__QuestionList[identificationCode]
+        data = question.getData()
+        del Generator.__QuestionList[identificationCode]
+        return data
+
+    @staticmethod
+    def SetAnswer(result: dict):
+        identificationCode: str = result['code']
+        identificationCode = identificationCode.replace('A', 'Q')
+        question: QuestionEvent = Generator.__QuestionList[identificationCode]
+        question.setData(result['data'])
+        question.up()
+
+    @staticmethod
+    async def waitAnswer(identificationCode: str):
+        question: QuestionEvent = Generator.__QuestionList[identificationCode]
+        await question.wait()
+
+    @staticmethod
+    async def Run(data: dict, isQuestion: bool = True, code: str = None):
+        GeneratorCode = Generator.Get()
         channel_layer = get_channel_layer()
 
-        Q = QuestionDTO(json.dumps(data))
-        Q.SplitData()
+        data = QuestionAndAnswerDTO(json.dumps(data))
+        if isQuestion:
+            identificationCode = data.SplitQuestionData()
+            Generator.__QuestionList[identificationCode] = QuestionEvent(identificationCode)
+        else:
+            identificationCode = data.SplitAnswerData(code)
 
-        QrcodeMaker.make(Q.getDataList(), Q.getDataCodeList())
+        QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
 
         param = {
             'type': 'receive',
             "data": {
                 "method": "add",
-                "list": Q.getDataCodeList()
+                "list": data.getDataCodeList()
             }
         }
 
-        async_to_sync(channel_layer.group_send)(code, param)
+        await channel_layer.group_send(GeneratorCode, param)
+        # async_to_sync()()
+
+        return identificationCode
 
     @staticmethod
     def GetNoGeneratorError():

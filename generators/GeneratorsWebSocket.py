@@ -5,7 +5,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 from generators.generators import Generator
 
 
-class Websocket(AsyncWebsocketConsumer):
+class GeneratorsWebSocket(AsyncWebsocketConsumer):
     __GeneratorCode: str = None
 
     async def connect(self):

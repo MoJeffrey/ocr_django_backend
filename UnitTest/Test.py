@@ -1,3 +1,5 @@
-num = 25
-padded_num = "%03d" % num
-print(padded_num)  # 输出: 05
+a = 'Text_1'
+
+b = a.lstrip('t_1')
+
+print(b)
