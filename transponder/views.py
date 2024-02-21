@@ -23,7 +23,7 @@ async def APITransponder(request, url):
     identificationCode = await Generator.Run(param)
     await Generator.waitAnswer(identificationCode)
     data = await Generator.GetAnswer(identificationCode)
-    await Generator.ToCloseQuestion(identificationCode)
+    # await Generator.ToCloseQuestion(identificationCode)
 
     return JsonResponse(data)
 
