@@ -1,5 +1,7 @@
 import json
+import time
 
+from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django_redis import get_redis_connection
 
@@ -47,9 +49,66 @@ class Generator(object):
 
         QrcodeMaker.remove(question.DTO.getDataCodeList())
 
-        redis_conn = get_redis_connection()
-        redis_conn.delete(identificationCode)
         del Generator.__EventList[identificationCode]
+
+    @staticmethod
+    def ToCloseForTask(identificationCode: str):
+        """
+        1. 发送删除Question QRcode 图片
+        2. 删除QRcode图片
+        3. 删除Redis
+        :param identificationCode:
+        :return:
+        """
+        question: QuestionAndAnswerEvent = Generator.__EventList[identificationCode]
+        param = (question.GeneratorCode, GeneratorsWebSocketMethodEnum.delete.value, question.DTO)
+        Generator.SendWebSocketMessageTask(*param)
+
+        QrcodeMaker.remove(question.DTO.getDataCodeList())
+
+        del Generator.__EventList[identificationCode]
+
+    @staticmethod
+    def SendWebSocketMessageTask(GeneratorCode: str, method: str, DTO: QuestionAndAnswerDTO):
+        channel_layer = get_channel_layer()
+        param = {
+            'type': 'receive',
+            "data": {
+                "method": method,
+                "list": DTO.getDataCodeList()
+            }
+        }
+        print(f"SendWebSocketMessageTask: {param}")
+        async_to_sync(channel_layer.group_send)(GeneratorCode, param)
+
+    @staticmethod
+    def ToCloseQuestionForTask(identificationCode: str):
+        """
+        1. 发送删除Question QRcode 图片
+        2. 删除QRcode图片
+        3. 删除Redis
+        :param identificationCode:
+        :return:
+        """
+        print("运行")
+        Generator.ToCloseForTask(identificationCode)
+
+        # 发送删除QRCode
+        param = {
+            "code": identificationCode,
+            "action": ActionEnum.close.value
+        }
+        GeneratorCode = Generator.Get()
+        data = QuestionAndAnswerDTO(json.dumps(param))
+        data.SplitCloseData(identificationCode)
+        QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
+        Generator.SendWebSocketMessageTask(GeneratorCode, GeneratorsWebSocketMethodEnum.add.value, data)
+
+        time.sleep(3)
+
+        redis_conn = get_redis_connection()
+        redis_conn.delete("A" + identificationCode[1:])
+        Generator.SendWebSocketMessageTask(GeneratorCode, GeneratorsWebSocketMethodEnum.delete.value, data)
 
     @staticmethod
     async def ToCloseQuestion(identificationCode: str):

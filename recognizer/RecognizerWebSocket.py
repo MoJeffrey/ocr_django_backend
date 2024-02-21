@@ -22,6 +22,7 @@ class RecognizerWebSocket(AsyncWebsocketConsumer):
         await self.channel_layer.group_discard(self.__RecognizerCode, self.channel_name)
 
     async def receive(self, text_data: str = None, bytes_data: str = None):
+        print("RecognizerWebSocket" + text_data)
         try:
             data = json.loads(text_data)
             if data['action'] == ActionEnum.transponder.value:

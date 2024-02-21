@@ -1,7 +1,7 @@
-import asyncio
 import json
+import threading
+import time
 
-from django_redis import get_redis_connection
 from django.http import JsonResponse
 
 from generators.enum.ActionEnum import ActionEnum
@@ -23,13 +23,20 @@ async def APITransponder(request, url):
     identificationCode = await Generator.Run(param)
     await Generator.waitAnswer(identificationCode)
     data = await Generator.GetAnswer(identificationCode)
-    # await Generator.ToCloseQuestion(identificationCode)
+
+    background_thread = threading.Thread(target=Generator.ToCloseQuestionForTask, args=(identificationCode, ))
+    background_thread.start()
 
     return JsonResponse(data)
 
 
-async def test(request):
-    await asyncio.sleep(1)
-    redis_conn = get_redis_connection()
-    redis_conn.delete('A000000001')
+def long_running_task():
+    time.sleep(2)
+    print("Long running task completed")
+
+
+def test(request):
+    background_thread = threading.Thread(target=long_running_task)
+    background_thread.start()
+    print("运行完成")
     return JsonResponse({'message': 'hi'})
