@@ -40,3 +40,12 @@ class QrcodeMaker:
         )
         items = QrcodeMaker.__Maker.generateQRCodeImage(*param)
         return list(items)
+
+    @staticmethod
+    def remove(fileNameList: list, savePath: str = QRCODE_SAVE_PATH):
+        for name in fileNameList:
+            path = f'{savePath}{name}.jpg'
+            try:
+                os.remove(path)
+            except FileNotFoundError:
+                continue

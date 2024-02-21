@@ -1,17 +1,19 @@
 import json
 
-from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django_redis import get_redis_connection
 
 from Tools import QrcodeMaker
 from generators.Exceptions.NoGeneratorError import NoGeneratorError
 from generators.DTO.QuestionAndAnswerDTO import QuestionAndAnswerDTO
-from generators.QuestionEvent import QuestionEvent
+from generators.QuestionAndAnswerEvent import QuestionAndAnswerEvent
+from generators.enum.ActionEnum import ActionEnum
+from generators.enum.GeneratorsWebSocketMethodEnum import GeneratorsWebSocketMethodEnum
 
 
 class Generator(object):
     __Generators = []
-    __QuestionList = {}
+    __EventList = {}
     __NextGenerator = 0
     __GeneratorCode = 0
 
@@ -21,51 +23,105 @@ class Generator(object):
         pass
 
     @staticmethod
-    def GetAnswer(identificationCode: str):
-        question = Generator.__QuestionList[identificationCode]
+    async def GetAnswer(identificationCode: str):
+        """
+        :param identificationCode:
+        :return:
+        """
+        question: QuestionAndAnswerEvent = Generator.__EventList[identificationCode]
         data = question.getData()
-        del Generator.__QuestionList[identificationCode]
         return data
+
+    @staticmethod
+    async def ToClose(identificationCode: str):
+        """
+        1. 发送删除Question QRcode 图片
+        2. 删除QRcode图片
+        3. 删除Redis
+        :param identificationCode:
+        :return:
+        """
+        question: QuestionAndAnswerEvent = Generator.__EventList[identificationCode]
+        param = (question.GeneratorCode, GeneratorsWebSocketMethodEnum.delete.value, question.DTO)
+        await Generator.SendWebSocketMessage(*param)
+
+        QrcodeMaker.remove(question.DTO.getDataCodeList())
+
+        redis_conn = get_redis_connection()
+        redis_conn.delete(identificationCode)
+        del Generator.__EventList[identificationCode]
+
+    @staticmethod
+    async def ToCloseQuestion(identificationCode: str):
+        """
+        1. 发送删除Question QRcode 图片
+        2. 删除QRcode图片
+        3. 删除Redis
+        :param identificationCode:
+        :return:
+        """
+        await Generator.ToClose(identificationCode)
+
+        # 发送删除QRCode
+        param = {
+            "code": identificationCode,
+            "action": ActionEnum.close.value
+        }
+        GeneratorCode = Generator.Get()
+        data = QuestionAndAnswerDTO(json.dumps(param))
+        data.SplitCloseData(identificationCode)
+        QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
+        await Generator.SendWebSocketMessage(GeneratorCode, GeneratorsWebSocketMethodEnum.add.value, data)
+
+    @staticmethod
+    async def ToCloseAnswer(identificationCode: str):
+        identificationCode = identificationCode.replace('C', 'A')
+        await Generator.ToClose(identificationCode)
 
     @staticmethod
     def SetAnswer(result: dict):
         identificationCode: str = result['code']
         identificationCode = identificationCode.replace('A', 'Q')
-        question: QuestionEvent = Generator.__QuestionList[identificationCode]
+        question: QuestionAndAnswerEvent = Generator.__EventList[identificationCode]
         question.setData(result['data'])
         question.up()
 
     @staticmethod
     async def waitAnswer(identificationCode: str):
-        question: QuestionEvent = Generator.__QuestionList[identificationCode]
+        question: QuestionAndAnswerEvent = Generator.__EventList[identificationCode]
         await question.wait()
 
     @staticmethod
     async def Run(data: dict, isQuestion: bool = True, code: str = None):
         GeneratorCode = Generator.Get()
-        channel_layer = get_channel_layer()
 
         data = QuestionAndAnswerDTO(json.dumps(data))
         if isQuestion:
             identificationCode = data.SplitQuestionData()
-            Generator.__QuestionList[identificationCode] = QuestionEvent(identificationCode)
         else:
             identificationCode = data.SplitAnswerData(code)
 
+        event: QuestionAndAnswerEvent = QuestionAndAnswerEvent(identificationCode, GeneratorCode)
+        event.SetDTO(data)
+
+        Generator.__EventList[identificationCode] = event
         QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
 
+        await Generator.SendWebSocketMessage(GeneratorCode, GeneratorsWebSocketMethodEnum.add.value, data)
+        return identificationCode
+
+    @staticmethod
+    async def SendWebSocketMessage(GeneratorCode: str, method: str, DTO: QuestionAndAnswerDTO):
+        channel_layer = get_channel_layer()
         param = {
             'type': 'receive',
             "data": {
-                "method": "add",
-                "list": data.getDataCodeList()
+                "method": method,
+                "list": DTO.getDataCodeList()
             }
         }
-
+        print(param)
         await channel_layer.group_send(GeneratorCode, param)
-        # async_to_sync()()
-
-        return identificationCode
 
     @staticmethod
     def GetNoGeneratorError():

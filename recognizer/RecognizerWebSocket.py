@@ -25,11 +25,12 @@ class RecognizerWebSocket(AsyncWebsocketConsumer):
         try:
             data = json.loads(text_data)
             if data['action'] == ActionEnum.transponder.value:
-                logging.info("收到问题")
                 transponder = Transponder(data)
                 await Generator.Run(transponder.GetData(), isQuestion=False, code=transponder.code)
             elif data['action'] == ActionEnum.answer.value:
                 Generator.SetAnswer(data)
-                logging.info("收到答案")
+            elif data['action'] == ActionEnum.close.value:
+                await Generator.ToCloseAnswer(data['code'])
+
         except Exception as e:
             pass

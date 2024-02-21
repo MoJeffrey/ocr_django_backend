@@ -1,14 +1,25 @@
 import asyncio
 
+from generators.DTO.QuestionAndAnswerDTO import QuestionAndAnswerDTO
 
-class QuestionEvent:
+
+class QuestionAndAnswerEvent:
     identificationCode: str = None
     event = None
     data = None
+    DTO: QuestionAndAnswerDTO = None
+    GeneratorCode: str = None
 
-    def __init__(self, identificationCode):
+    def __init__(self, identificationCode, GeneratorCode: str):
         self.identificationCode = identificationCode
+        self.GeneratorCode = GeneratorCode
         self.event = asyncio.Event()
+
+    def SetDTO(self, DTO):
+        self.DTO = DTO
+
+    def GetDTO(self) -> QuestionAndAnswerDTO:
+        return self.DTO
 
     async def wait(self):
         """

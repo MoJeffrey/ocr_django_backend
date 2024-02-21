@@ -1,8 +1,7 @@
 import asyncio
 import json
-import logging
 
-from asgiref.sync import async_to_sync
+from django_redis import get_redis_connection
 from django.http import JsonResponse
 
 from generators.enum.ActionEnum import ActionEnum
@@ -23,11 +22,14 @@ async def APITransponder(request, url):
 
     identificationCode = await Generator.Run(param)
     await Generator.waitAnswer(identificationCode)
-    data = Generator.GetAnswer(identificationCode)
+    data = await Generator.GetAnswer(identificationCode)
+    await Generator.ToCloseQuestion(identificationCode)
 
     return JsonResponse(data)
 
 
 async def test(request):
     await asyncio.sleep(1)
-    return JsonResponse({'message': 'Async view completed'})
+    redis_conn = get_redis_connection()
+    redis_conn.delete('A000000001')
+    return JsonResponse({'message': 'hi'})

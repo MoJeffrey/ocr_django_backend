@@ -71,6 +71,16 @@ TEMPLATES = [
     },
 ]
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/5',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+        }
+    }
+}
+
 WSGI_APPLICATION = 'ocr_django.wsgi.application'
 
 
@@ -90,8 +100,6 @@ CHANNEL_LAYERS = {
     "CONFIG": {
       "hosts": [('127.0.0.1', 6379)],
     },
-    # 配置路由的路径
-    # "ROUTING": "exmchannels.routing.channel_routing",
   },
 }
 
@@ -151,4 +159,9 @@ logging.basicConfig(level=logging.INFO, format=formatStr, datefmt='%Y-%m-%d %H:%
 
 
 # transponder
-Transponder_URL = 'http://192.168.1.157:8081/'
+# Transponder_URL = 'http://192.168.1.157:8081/'
+Transponder_URL = 'http://127.0.0.1:5000/'
+
+# Celery配置
+CELERY_BROKER_URL = 'redis://localhost:6379/1'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
