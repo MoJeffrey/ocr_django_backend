@@ -11,8 +11,8 @@ class QrcodeMaker:
     __ArrayList = None
     __Maker = None
 
-    __QRCode_High = 300
-    __QRCode_Width = 300
+    __QRCode_High = 400
+    __QRCode_Width = 400
 
     @staticmethod
     def Init(javaToolPath: str = None):
