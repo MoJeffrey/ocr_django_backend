@@ -4,6 +4,7 @@ import requests
 
 from generators.enum.ActionEnum import ActionEnum
 from ocr_django.settings import Transponder_URL
+from recognizer.DTO.RecognizerDTO import RecognizerDTO
 
 
 class Transponder:
@@ -12,10 +13,10 @@ class Transponder:
     method: str = None
     data: dict = None
     params: dict = None
-    code: str = None
 
-    def __init__(self, Object: dict):
-        self.__dict__ = Object.copy()
+    def __init__(self, Object: dict = None):
+        if Object is not None:
+            self.__dict__ = Object.copy()
 
     def Run(self):
         URL = Transponder_URL + self.url
@@ -30,9 +31,11 @@ class Transponder:
         logging.info(data)
         return data
 
-    def GetData(self):
+    def GetData(self) -> dict:
         return {
-            'action': ActionEnum.answer.value,
-            'data': self.Run(),
-            'code': self.code
+            "url": self.url,
+            "method": self.method,
+            "data": self.data,
+            "params": self.params,
+            "headers": self.headers,
         }

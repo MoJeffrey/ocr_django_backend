@@ -151,7 +151,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 ASGI_APPLICATION = 'ocr_django.asgi.application'
 
-QRCODE_MAX_Length = 500
+QRCODE_MAX_Length = 490
 QRCODE_SAVE_PATH = './static/img/'
 
 # 日志
@@ -239,3 +239,7 @@ Transponder_URL = 'http://127.0.0.1:5000/'
 # Celery配置
 CELERY_BROKER_URL = 'redis://localhost:6379/1'
 CELERY_RESULT_BACKEND = 'redis://localhost:6379/1'
+
+# QRCode
+# QRCODE_COLOR_LIST = ['0xFFFF0000', '0xFF00FF00', '0xFFFFFF00']
+QRCODE_COLOR_LIST = []

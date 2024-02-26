@@ -6,21 +6,26 @@ from django.http import JsonResponse
 
 from generators.enum.ActionEnum import ActionEnum
 from generators.generators import Generator
+from recognizer.DTO.RecognizerDTO import RecognizerDTO
+from transponder.Transponder import Transponder
 
 
 async def APITransponder(request, url):
-    param = {
-        "url": url,
-        "headers": {'AUTHORIZATION': request.META.get("HTTP_AUTHORIZATION")},
-        "method": request.method,
-        "action": ActionEnum.transponder.value
-    }
-    if request.method == "GET":
-        param['params'] = request.GET.dict()
-    elif request.method == "POST":
-        param["data"] = json.loads(request.body) if request.body else {}
+    transponder = Transponder()
+    transponder.url = url
+    transponder.headers = {'AUTHORIZATION': request.META.get("HTTP_AUTHORIZATION")}
+    transponder.method = request.method
 
-    identificationCode = await Generator.Run(param)
+    if request.method == "GET":
+        transponder.params = request.GET.dict()
+    elif request.method == "POST":
+        transponder.data = json.loads(request.body) if request.body else {}
+
+    DTO = RecognizerDTO()
+    DTO.action = ActionEnum.transponder.value
+    DTO.data = transponder.GetData()
+
+    identificationCode = await Generator.Run(DTO.GetData())
     await Generator.waitAnswer(identificationCode)
     data = await Generator.GetAnswer(identificationCode)
 

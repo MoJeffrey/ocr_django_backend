@@ -8,11 +8,9 @@ class QuestionAndAnswerEvent:
     event = None
     data = None
     DTO: QuestionAndAnswerDTO = None
-    GeneratorCode: str = None
 
-    def __init__(self, identificationCode, GeneratorCode: str):
+    def __init__(self, identificationCode):
         self.identificationCode = identificationCode
-        self.GeneratorCode = GeneratorCode
         self.event = asyncio.Event()
 
     def SetDTO(self, DTO):

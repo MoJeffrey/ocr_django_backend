@@ -1,4 +1,6 @@
 import json
+import threading
+import time
 
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
@@ -17,32 +19,43 @@ class Recognizer(object):
         pass
 
     @staticmethod
-    def GetRecognizer() -> str:
-        RecognizerCode = Recognizer.__Recognizers[Recognizer.__NextRecognizer]
-        Recognizer.__NextRecognizer += 1
-        if Recognizer.__NextRecognizer == Recognizer.__NowRecognizer:
-            Recognizer.__NextRecognizer = 0
-        return RecognizerCode
-
-    @staticmethod
-    def Get() -> str:
-        pass
-
-    @staticmethod
     def Add(code):
         Recognizer.__Recognizers.append(code)
-        Recognizer.__NowRecognizer += 1
-        Recognizer.Get = Recognizer.GetRecognizer
 
     @staticmethod
     def remove(code):
         Recognizer.__Recognizers.remove(code)
-        Recognizer.__NowRecognizer -= 1
 
     @staticmethod
     def GetNewRecognizerCode() -> str:
-        Recognizer.__RecognizerCode += 1
-        Code = f'Recognizer_{Recognizer.__RecognizerCode}'
-        Recognizer.Add(Code)
+        code = 1
+        while True:
+            if str(code) in Recognizer.__Recognizers:
+                code += 1
+                continue
+            break
 
-        return Code
+        code = str(code)
+        Recognizer.Add(code)
+
+        return code
+
+    @staticmethod
+    def SendDelData(code):
+        data = {
+            'action': "delete",
+            'code': code
+        }
+        background_thread = threading.Thread(target=Recognizer.SendMessage, args=(data,))
+        background_thread.start()
+
+    @staticmethod
+    def SendMessage(Msg: str):
+        channel_layer = get_channel_layer()
+        data = json.dumps(Msg)
+        time.sleep(2)
+        param = {
+            "type": "send_message",
+            "data": data
+        }
+        async_to_sync(channel_layer.group_send)('Recognizer', param)
