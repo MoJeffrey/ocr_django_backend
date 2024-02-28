@@ -50,3 +50,6 @@ class QuestionAndAnswerDTO:
 
     def getDataCodeList(self) -> list:
         return self.__dataCodeList
+
+    def setDataCodeList(self, codeList: list):
+        self.__dataCodeList = codeList

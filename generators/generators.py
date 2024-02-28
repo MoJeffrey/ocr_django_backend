@@ -84,7 +84,9 @@ class Generator(object):
         }
         data = QuestionAndAnswerDTO(json.dumps(param))
         CloseCode = data.SplitCloseData(identificationCode)
-        QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
+        codeList = QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
+        data.setDataCodeList(codeList)
+
         Generator.SendWebSocketMessageTask(GeneratorsWebSocketMethodEnum.add.value, data)
 
         time.sleep(3)
@@ -111,7 +113,10 @@ class Generator(object):
         }
         data = QuestionAndAnswerDTO(json.dumps(param))
         data.SplitCloseData(identificationCode)
-        QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
+
+        codeList = QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
+        data.setDataCodeList(codeList)
+
         await Generator.SendMessage(GeneratorsWebSocketMethodEnum.add.value, data)
 
     @staticmethod
@@ -144,7 +149,8 @@ class Generator(object):
         event.SetDTO(data)
 
         Generator.__EventList[identificationCode] = event
-        QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
+        codeList = QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
+        data.setDataCodeList(codeList)
 
         await Generator.SendMessage(GeneratorsWebSocketMethodEnum.add.value, data)
         return identificationCode
