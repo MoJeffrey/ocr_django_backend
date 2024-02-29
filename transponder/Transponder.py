@@ -31,7 +31,7 @@ class Transponder:
         logging.info(data)
         return data
 
-    def GetData(self) -> dict:
+    def GetTransponderData(self) -> dict:
         return {
             "url": self.url,
             "method": self.method,
@@ -39,3 +39,10 @@ class Transponder:
             "params": self.params,
             "headers": self.headers,
         }
+    
+    def GetRecognizerDTO(self, code) -> RecognizerDTO:
+        DTO = RecognizerDTO()
+        DTO.action = ActionEnum.answer.value
+        DTO.data = self.Run()
+        DTO.code = code.replace('A', 'Q')
+        return DTO

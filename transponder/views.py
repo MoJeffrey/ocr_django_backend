@@ -23,9 +23,9 @@ async def APITransponder(request, url):
 
     DTO = RecognizerDTO()
     DTO.action = ActionEnum.transponder.value
-    DTO.data = transponder.GetData()
+    DTO.data = transponder.GetTransponderData()
 
-    identificationCode = await Generator.Run(DTO.GetData())
+    identificationCode = await Generator.Run(DTO)
     await Generator.waitAnswer(identificationCode)
     data = await Generator.GetAnswer(identificationCode)
 

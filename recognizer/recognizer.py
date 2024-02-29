@@ -9,6 +9,7 @@ from Tools import QrcodeMaker
 
 
 class Recognizer(object):
+    __result_dict = {}
     __Recognizers = []
     __NextRecognizer = 0
     __RecognizerCode = 0
@@ -17,6 +18,22 @@ class Recognizer(object):
 
     def __init__(self):
         pass
+
+    @staticmethod
+    def AddResult(result: str, code: str):
+        if code not in Recognizer.__result_dict:
+            Recognizer.__result_dict[code] = []
+
+        Recognizer.__result_dict[code].append(result)
+
+        data = Recognizer.__result_dict[code]
+        return data
+
+    @staticmethod
+    def DeleteResult(code: str):
+        data = Recognizer.__result_dict[code]
+        del Recognizer.__result_dict[code]
+        return data
 
     @staticmethod
     def Add(code):

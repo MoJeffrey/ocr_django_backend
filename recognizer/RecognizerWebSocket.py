@@ -4,6 +4,7 @@ from channels.generic.websocket import AsyncWebsocketConsumer
 
 from generators.generators import Generator
 from generators.enum.ActionEnum import ActionEnum
+from recognizer.DTO.QRCodeDataDTO import QRCodeDataDTO
 from recognizer.DTO.RecognizerDTO import RecognizerDTO
 from recognizer.recognizer import Recognizer
 from transponder.Transponder import Transponder
@@ -29,22 +30,26 @@ class RecognizerWebSocket(AsyncWebsocketConsumer):
         :param bytes_data:
         :return:
         """
+        data = QRCodeDataDTO(text_data)
+        current_data = Recognizer.AddResult(text_data, data.code)
+
+        if len(current_data) != data.data_all_num:
+            return
+
+        data = QRCodeDataDTO.splicing(current_data)
+        DTD = RecognizerDTO(StringObj=data)
+        await RecognizerWebSocket.Run(DTD)
+
+    @staticmethod
+    async def Run(data: RecognizerDTO):
         try:
-            DTD = RecognizerDTO(StringObj=text_data)
-
-            if DTD.action == ActionEnum.transponder.value:
-                transponder = Transponder(DTD.data)
-
-                NewDTO = RecognizerDTO()
-                NewDTO.action = ActionEnum.answer.value
-                NewDTO.data = transponder.Run()
-                NewDTO.code = DTD.code.replace('A', 'Q')
-
-                await Generator.Run(NewDTO.GetData(), isQuestion=False, code=DTD.code)
-            elif DTD.action == ActionEnum.answer.value:
-                Generator.SetAnswer(DTD)
-            elif DTD.action == ActionEnum.close.value:
-                await Generator.ToCloseAnswer(DTD.code)
+            if data.action == ActionEnum.transponder.value:
+                transponder = Transponder(data.data)
+                await Generator.Run(transponder.GetRecognizerDTO(data.code), isQuestion=False, code=data.code)
+            elif data.action == ActionEnum.answer.value:
+                Generator.SetAnswer(data)
+            elif data.action == ActionEnum.close.value:
+                await Generator.ToCloseAnswer(data.code)
 
         except Exception as e:
             logging.error(e)
