@@ -31,6 +31,16 @@ class Generator(object):
         return data
 
     @staticmethod
+    async def QrcodeRemove(identificationCode: str):
+        question: QuestionAndAnswerEvent = Generator.__EventList[identificationCode]
+        param = (GeneratorsWebSocketMethodEnum.delete.value, question.DTO)
+        await Generator.SendMessage(*param)
+
+        QrcodeMaker.remove(question.DTO.getDataCodeList())
+
+        del Generator.__EventList[identificationCode]
+
+    @staticmethod
     async def ToClose(identificationCode: str):
         """
         1. 向前端发送删除 答案二维码
@@ -42,13 +52,7 @@ class Generator(object):
         :return:
         """
         identificationCode = identificationCode.replace('C', 'A')
-        question: QuestionAndAnswerEvent = Generator.__EventList[identificationCode]
-        param = (GeneratorsWebSocketMethodEnum.delete.value, question.DTO)
-        await Generator.SendMessage(*param)
-
-        QrcodeMaker.remove(question.DTO.getDataCodeList())
-
-        del Generator.__EventList[identificationCode]
+        await Generator.QrcodeRemove(identificationCode)
 
         identificationCode = identificationCode.replace('A', 'Q')
         Recognizer.SendDelData(identificationCode)
@@ -73,26 +77,37 @@ class Generator(object):
         del Generator.__EventList[identificationCode]
 
     @staticmethod
-    def SendCloseQRCode(identificationCode: str) -> QuestionAndAnswerDTO:
+    def SendQRCode(identificationCode: str, action: str) -> QuestionAndAnswerDTO:
         """
         传入识别码
-
-        向前端send 关闭该问题的二维码
-
-        告诉内容服务器停止显示答案二维码
         :param identificationCode:
+        :param action:
         :return:
         """
         DTO = RecognizerDTO()
-        DTO.action = ActionEnum.close.value
+        DTO.action = action
         DTO.code = identificationCode
 
         data = QuestionAndAnswerDTO(DTO)
-        data.SplitCloseData(identificationCode)
+        if action == ActionEnum.close.value:
+            data.SplitCloseData(identificationCode)
+        elif action == ActionEnum.end.value:
+            data.SplitEndData(identificationCode)
+
         codeList = QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
         data.setDataCodeList(codeList)
+        return data
 
+    @staticmethod
+    def SendQRCodeForTask(identificationCode: str, action: str) -> QuestionAndAnswerDTO:
+        data: QuestionAndAnswerDTO = Generator.SendQRCode(identificationCode, action)
         Generator.SendWebSocketMessageTask(GeneratorsWebSocketMethodEnum.add.value, data)
+        return data
+
+    @staticmethod
+    async def SendQRCodeForAsync(identificationCode: str, action: str) -> QuestionAndAnswerDTO:
+        data: QuestionAndAnswerDTO = Generator.SendQRCode(identificationCode, action)
+        await Generator.SendMessage(GeneratorsWebSocketMethodEnum.add.value, data, True)
         return data
 
     @staticmethod
@@ -100,19 +115,11 @@ class Generator(object):
         """
         1. 删除东西
         2. 发送删除问题二维码
-        3. 等待收到内网服务器收到删除指令
         :param identificationCode:
         :return:
         """
         Generator.ToCloseForTask(identificationCode)
-
-        DTO = Generator.SendCloseQRCode(identificationCode)
-
-        # time.sleep(3)
-        # Generator.SendWebSocketMessageTask(GeneratorsWebSocketMethodEnum.delete.value, DTO)
-        # QrcodeMaker.remove(DTO.getDataCodeList())
-        # Recognizer.SendDelData(identificationCode)
-        # Recognizer.SendDelData(DTO.GetData().code)
+        Generator.SendQRCodeForTask(identificationCode, ActionEnum.close.value)
 
     @staticmethod
     async def ToCloseQuestion(identificationCode: str):
@@ -139,8 +146,19 @@ class Generator(object):
         await Generator.SendMessage(GeneratorsWebSocketMethodEnum.add.value, data)
 
     @staticmethod
+    async def ToEndQuestion(identificationCode: str):
+        identificationCode = identificationCode.replace('E', 'C')
+        await Generator.QrcodeRemove(identificationCode)
+
+        identificationCode = identificationCode.replace('C', 'A')
+        Recognizer.SendDelData(identificationCode)
+
+        Recognizer.DeleteResult(identificationCode)
+
+    @staticmethod
     async def ToCloseAnswer(identificationCode: str):
         await Generator.ToClose(identificationCode)
+        await Generator.SendQRCodeForAsync(identificationCode, ActionEnum.end.value)
 
     @staticmethod
     def SetAnswer(DTD: RecognizerDTO):
@@ -174,7 +192,7 @@ class Generator(object):
         return identificationCode
 
     @staticmethod
-    async def SendMessage(method: str, DTO: QuestionAndAnswerDTO):
+    async def SendMessage(method: str, DTO: QuestionAndAnswerDTO, disposable: bool = False):
         channel_layer = get_channel_layer()
         allGenerator = len(Generator.__Generators)
         param = {
@@ -183,7 +201,8 @@ class Generator(object):
                 "method": method,
                 "list": DTO.getDataCodeList(),
                 "lastGenerator": Generator.__lastGenerator,
-                "allGenerator": allGenerator
+                "allGenerator": allGenerator,
+                "disposable": disposable,
             }
         }
         await channel_layer.group_send('Generator', param)
@@ -191,7 +210,7 @@ class Generator(object):
         Generator.__lastGenerator = Num % allGenerator
 
     @staticmethod
-    def SendWebSocketMessageTask(method: str, DTO: QuestionAndAnswerDTO):
+    def SendWebSocketMessageTask(method: str, DTO: QuestionAndAnswerDTO, disposable: bool = False):
         channel_layer = get_channel_layer()
         allGenerator = len(Generator.__Generators)
         param = {
@@ -200,7 +219,8 @@ class Generator(object):
                 "method": method,
                 "list": DTO.getDataCodeList(),
                 "lastGenerator": Generator.__lastGenerator,
-                "allGenerator": allGenerator
+                "allGenerator": allGenerator,
+                "disposable": disposable,
             }
         }
         async_to_sync(channel_layer.group_send)('Generator', param)

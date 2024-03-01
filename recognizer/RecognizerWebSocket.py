@@ -50,9 +50,13 @@ class RecognizerWebSocket(AsyncWebsocketConsumer):
                 Generator.SetAnswer(data)
             elif data.action == ActionEnum.close.value:
                 await Generator.ToCloseAnswer(data.code)
+            elif data.action == ActionEnum.end.value:
+                await Generator.ToEndQuestion(data.code)
 
         except Exception as e:
             logging.error(e)
+            logging.error(data.action)
+            logging.error(data.code)
 
     async def send_message(self, event):
         data = event['data']

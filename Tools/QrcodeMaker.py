@@ -14,8 +14,6 @@ class QrcodeMaker:
     __QRCode_High = 400
     __QRCode_Width = 400
     __COLOR_LIST = None
-    __COLOR_INDEX = None
-    __COLOR_LENGTH = None
 
     @staticmethod
     def Init(javaToolPath: str = None):
@@ -32,28 +30,14 @@ class QrcodeMaker:
         for i in QRCODE_COLOR_LIST:
             QrcodeMaker.__COLOR_LIST.add(i)
 
-        QrcodeMaker.__COLOR_LENGTH = len(QrcodeMaker.__COLOR_LIST)
-        QrcodeMaker.__COLOR_INDEX = 0
-
     @staticmethod
     def make(dataList: list, fileNameList: list, savePath: str = QRCODE_SAVE_PATH) -> list:
         data_list = QrcodeMaker.__ArrayList()
         fileName_list = QrcodeMaker.__ArrayList()
-        color_list = QrcodeMaker.__ArrayList()
 
-        codeList = []
         for i in range(len(dataList)):
             data_list.add(dataList[i])
-
-            fileName = fileNameList[i] + f'_{QrcodeMaker.__COLOR_INDEX + 1}'
-            # fileName = fileNameList[i]
-            fileName_list.add(fileName)
-            codeList.append(fileName)
-            color_list.add(QRCODE_COLOR_LIST[QrcodeMaker.__COLOR_INDEX])
-
-            QrcodeMaker.__COLOR_INDEX += 1
-            if QrcodeMaker.__COLOR_INDEX == QrcodeMaker.__COLOR_LENGTH:
-                QrcodeMaker.__COLOR_INDEX = 0
+            fileName_list.add(fileNameList[i])
 
         param = (
             data_list,
@@ -61,11 +45,11 @@ class QrcodeMaker:
             QrcodeMaker.__QRCode_Width,
             savePath,
             fileName_list,
-            color_list
+            QrcodeMaker.__COLOR_LIST
         )
 
         QrcodeMaker.__Maker.generateQRCodesWithBackgroundColor(*param)
-        return codeList
+        return fileNameList
 
     @staticmethod
     def remove(fileNameList: list, savePath: str = QRCODE_SAVE_PATH):

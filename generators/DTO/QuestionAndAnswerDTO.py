@@ -44,6 +44,10 @@ class QuestionAndAnswerDTO:
 
         return code
 
+    def SplitEndData(self, code: str):
+        code = int(code[1:])
+        return self.SplitData(code, 'E')
+
     def SplitCloseData(self, code: str):
         code = int(code[1:])
         return self.SplitData(code, 'C')
