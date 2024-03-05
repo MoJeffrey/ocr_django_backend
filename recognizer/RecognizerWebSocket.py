@@ -60,6 +60,7 @@ class RecognizerWebSocket(AsyncWebsocketConsumer):
                 await Generator.ToEndQuestion(data.code)
 
         except Exception as e:
+            logging.error(traceback.print_exc())
             logging.error(e)
             logging.error(data.action)
             logging.error(data.code)

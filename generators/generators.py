@@ -1,3 +1,4 @@
+import logging
 import time
 
 from asgiref.sync import async_to_sync
@@ -74,6 +75,7 @@ class Generator(object):
 
         QrcodeMaker.remove(question.DTO.getDataCodeList())
 
+        logging.error(f"删除{identificationCode}")
         del Generator.__EventList[identificationCode]
 
     @staticmethod
@@ -101,6 +103,13 @@ class Generator(object):
     @staticmethod
     def SendQRCodeForTask(identificationCode: str, action: str) -> QuestionAndAnswerDTO:
         data: QuestionAndAnswerDTO = Generator.SendQRCode(identificationCode, action)
+
+        event: QuestionAndAnswerEvent = QuestionAndAnswerEvent(data.GetData().code, HaveEvent=False)
+        event.SetDTO(data)
+
+        logging.error("添加" + data.GetData().code)
+        Generator.__EventList[data.GetData().code] = event
+
         Generator.SendWebSocketMessageTask(GeneratorsWebSocketMethodEnum.add.value, data)
         return data
 
@@ -184,6 +193,7 @@ class Generator(object):
         event: QuestionAndAnswerEvent = QuestionAndAnswerEvent(identificationCode)
         event.SetDTO(data)
 
+        logging.error("添加" + identificationCode)
         Generator.__EventList[identificationCode] = event
         codeList = QrcodeMaker.make(data.getDataList(), data.getDataCodeList())
         data.setDataCodeList(codeList)

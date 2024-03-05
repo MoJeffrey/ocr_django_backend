@@ -9,9 +9,11 @@ class QuestionAndAnswerEvent:
     data = None
     DTO: QuestionAndAnswerDTO = None
 
-    def __init__(self, identificationCode):
+    def __init__(self, identificationCode, HaveEvent: bool = True):
         self.identificationCode = identificationCode
-        self.event = asyncio.Event()
+
+        if HaveEvent:
+            self.event = asyncio.Event()
 
     def SetDTO(self, DTO):
         self.DTO = DTO
