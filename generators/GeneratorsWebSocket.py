@@ -1,4 +1,7 @@
 import json
+import logging
+import traceback
+from _xxsubinterpreters import ChannelClosedError
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 from generators.enum.GeneratorsWebSocketMethodEnum import GeneratorsWebSocketMethodEnum
@@ -11,7 +14,12 @@ class GeneratorsWebSocket(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.__GeneratorCode = Generator.GetNewGeneratorCode()
-        await self.channel_layer.group_add(self.__GroupName, self.channel_name)
+        try:
+            await self.channel_layer.group_add(self.__GroupName, self.channel_name)
+        except Exception:
+            logging.error(traceback.print_exc())
+            Generator.remove(self.__GeneratorCode)
+            return
         await self.accept()
 
         data = {

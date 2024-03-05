@@ -1,4 +1,5 @@
 import logging
+import traceback
 
 from channels.generic.websocket import AsyncWebsocketConsumer
 
@@ -16,7 +17,12 @@ class RecognizerWebSocket(AsyncWebsocketConsumer):
 
     async def connect(self):
         self.__RecognizerCode = Recognizer.GetNewRecognizerCode()
-        await self.channel_layer.group_add(self.__GroupName, self.channel_name)
+        try:
+            await self.channel_layer.group_add(self.__GroupName, self.channel_name)
+        except Exception:
+            logging.error(traceback.print_exc())
+            Recognizer.remove(self.__RecognizerCode)
+            return
         await self.accept()
 
     async def disconnect(self, close_code):
